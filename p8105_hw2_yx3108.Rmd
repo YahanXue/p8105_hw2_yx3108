@@ -1,0 +1,228 @@
+---
+title: "Homework2"
+author: "Yahan Xue"
+date: "2026-10-04"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(readxl)
+```
+
+# Problem 1
+
+```{r}
+subway_df = 
+  read_csv("data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv") |>
+  janitor::clean_names() |>
+  select(
+    line,
+    station_name,
+    station_latitude,
+    station_longitude,
+    route1:route11,
+    entry,
+    vending,
+    entrance_type,
+    ada
+  ) |>
+  mutate(
+    entry = entry == "YES"
+  )
+```
+
+```{r}
+subway_df |>
+  distinct(station_name, line) |>
+  nrow()
+```
+
+```{r}
+subway_df |>
+  filter(ada == TRUE) |>
+  distinct(station_name, line) |>
+  nrow()
+```
+
+# Problem 2
+
+```{r}
+library(readxl)
+
+mr_trash = 
+  read_excel(
+    "data/202509 Trash Wheel Collection Data.xlsx",
+    sheet = "Mr. Trash Wheel",
+    range = "A2:N709"
+  ) |>
+  janitor::clean_names() |>
+  drop_na(dumpster) |>
+  mutate(
+    year = as.numeric(year),
+    sports_balls = as.integer(round(sports_balls)),
+    trash_wheel = "Mr. Trash Wheel"
+  )
+
+professor_trash = 
+  read_excel(
+    "data/202509 Trash Wheel Collection Data.xlsx",
+    sheet = "Professor Trash Wheel",
+    range = "A2:M134"
+  ) |>
+  janitor::clean_names() |>
+  drop_na(dumpster) |>
+  mutate(
+    year = as.numeric(year),
+    trash_wheel = "Professor Trash Wheel"
+  )
+
+gwynnda_trash = 
+  read_excel(
+    "data/202509 Trash Wheel Collection Data.xlsx",
+    sheet = "Gwynns Falls Trash Wheel",
+    range = "A2:L351"
+  ) |>
+  janitor::clean_names() |>
+  drop_na(dumpster) |>
+  mutate(
+    year = as.numeric(year),
+    trash_wheel = "Gwynnda"
+  )
+
+trash_wheel_df = 
+  bind_rows(
+    mr_trash,
+    professor_trash,
+    gwynnda_trash
+  )
+
+nrow(trash_wheel_df)
+```
+
+```{r}
+trash_wheel_df |>
+  filter(trash_wheel == "Professor Trash Wheel") |>
+  summarize(
+    total_weight = sum(weight_tons, na.rm = TRUE)
+  )
+
+trash_wheel_df |>
+  filter(
+    trash_wheel == "Gwynnda",
+    year == 2022,
+    month == "June"
+  ) |>
+  summarize(
+    total_cigarette_butts = sum(cigarette_butts, na.rm = TRUE)
+  )
+```
+The combined Trash Wheel dataset consists of 1188 observations. Its key variables are dumpster number, month, year, weight of trash collected in tons, volume, homes powered, cigarette butts, and the Trash Wheel identifier. Data were imported from the three corresponding Excel worksheets; non‑data rows were removed during data cleaning, and all records were merged to form a single tidy dataset. Professor Trash Wheel collected a total of 282.26 tons of trash across the dataset. For June 2022, Gwynnda recorded a total collection of 18,120 cigarette butts.
+
+# Problem 3
+```{r}
+mci_baseline = 
+  read_csv(
+    "data/MCI_baseline.csv",
+    skip = 1,
+    na = "."
+  ) |>
+  janitor::clean_names() |>
+  mutate(
+    sex = if_else(sex == 1, "Male", "Female"),
+    apoe4 = if_else(apoe4 == 1, "Carrier", "Non-carrier")
+  ) |>
+  filter(
+    is.na(age_at_onset) | age_at_onset > current_age
+  )
+
+mci_baseline
+```
+
+```{r}
+nrow(mci_baseline)
+
+mci_baseline |>
+  filter(!is.na(age_at_onset)) |>
+  nrow()
+
+mean(mci_baseline$current_age)
+
+mci_baseline |>
+  filter(sex == "Female") |>
+  summarize(
+    proportion_apoe4 = mean(apoe4 == "Carrier")
+  )
+```
+
+```{r}
+mci_amyloid = 
+  read_csv(
+    "data/mci_amyloid.csv",
+    skip = 1,
+    na = c("NA", "Na")
+  ) |>
+  janitor::clean_names() |>
+  rename(id = study_id) |>
+  pivot_longer(
+    cols = baseline:time_8,
+    names_to = "visit",
+    values_to = "amyloid_ratio"
+  ) |>
+  mutate(
+    time = case_when(
+      visit == "baseline" ~ 0,
+      visit == "time_2" ~ 2,
+      visit == "time_4" ~ 4,
+      visit == "time_6" ~ 6,
+      visit == "time_8" ~ 8
+    )
+  ) |>
+  select(id, time, amyloid_ratio)
+
+mci_amyloid
+```
+
+```{r}
+baseline_only = 
+  mci_baseline |>
+  anti_join(
+    mci_amyloid |> distinct(id),
+    by = "id"
+  )
+
+amyloid_only = 
+  mci_amyloid |>
+  distinct(id) |>
+  anti_join(
+    mci_baseline,
+    by = "id"
+  )
+
+baseline_only$id
+
+amyloid_only$id
+```
+```{r}
+mci_combined = 
+  inner_join(
+    mci_baseline,
+    mci_amyloid,
+    by = "id"
+  )
+
+mci_combined
+
+n_distinct(mci_combined$id)
+dim(mci_combined)
+```
+
+```{r}
+write_csv(
+  mci_combined,
+  "data/mci_combined.csv"
+)
+```
+Following cleaning of the baseline demographic dataset, 479 participants satisfied the study’s inclusion criteria. Of these individuals, 93 progressed to MCI over the follow‑up period. The mean baseline age was roughly 65.03 years, and 30% of female participants were APOE4 carriers.
+
+The amyloid biomarker dataset was imported and converted from wide format to long format, such that each row corresponds to one participant for a single study visit. Cross‑comparison of participant IDs between the two datasets revealed 8 participants present exclusively in the baseline dataset and 16 participants found only within the amyloid biomarker dataset. An inner join was subsequently performed, yielding a final sample of 471 participants common to both datasets. This merged dataset integrates baseline demographic data with longitudinal amyloid measurements and was saved and exported in CSV file format.
