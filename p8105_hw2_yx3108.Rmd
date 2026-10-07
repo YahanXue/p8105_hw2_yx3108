@@ -89,41 +89,49 @@ library(readxl)
 
 mr_trash = 
   read_excel(
-    "data/202509 Trash Wheel Collection Data.xlsx",
+    "data/202610 Trash Wheel Collection Data.xlsx",
     sheet = "Mr. Trash Wheel",
-    range = "A2:N709"
+    range = "A2:N742"
   ) |>
   janitor::clean_names() |>
   drop_na(dumpster) |>
   mutate(
     year = as.numeric(year),
+    month = str_trim(month),
+    plastic_bottles = readr::parse_number(as.character(plastic_bottles)),
     sports_balls = as.integer(round(sports_balls)),
     trash_wheel = "Mr. Trash Wheel"
   )
 
 professor_trash = 
   read_excel(
-    "data/202509 Trash Wheel Collection Data.xlsx",
+    "data/202610 Trash Wheel Collection Data.xlsx",
     sheet = "Professor Trash Wheel",
-    range = "A2:M134"
+    range = "A2:M139"
   ) |>
   janitor::clean_names() |>
   drop_na(dumpster) |>
   mutate(
     year = as.numeric(year),
-    trash_wheel = "Professor Trash Wheel"
+    month = str_trim(month),
+  plastic_bottles = suppressWarnings(
+  readr::parse_number(as.character(plastic_bottles))
+),
+trash_wheel = "Professor Trash Wheel"
   )
 
 gwynnda_trash = 
   read_excel(
-    "data/202509 Trash Wheel Collection Data.xlsx",
-    sheet = "Gwynns Falls Trash Wheel",
-    range = "A2:L351"
+    "data/202610 Trash Wheel Collection Data.xlsx",
+    sheet = "Gwynnda the Good Wheel of the W",
+    range = "A2:L394"
   ) |>
   janitor::clean_names() |>
   drop_na(dumpster) |>
   mutate(
     year = as.numeric(year),
+    month = str_trim(month),
+    plastic_bottles = readr::parse_number(as.character(plastic_bottles)),
     trash_wheel = "Gwynnda"
   )
 
@@ -135,9 +143,7 @@ trash_wheel_df =
   )
 
 nrow(trash_wheel_df)
-```
 
-```{r}
 trash_wheel_df |>
   filter(trash_wheel == "Professor Trash Wheel") |>
   summarize(
@@ -154,7 +160,8 @@ trash_wheel_df |>
     total_cigarette_butts = sum(cigarette_butts, na.rm = TRUE)
   )
 ```
-The combined Trash Wheel dataset consists of 1188 observations. Its key variables are dumpster number, month, year, weight of trash collected in tons, volume, homes powered, cigarette butts, and the Trash Wheel identifier. Data were imported from the three corresponding Excel worksheets; non‑data rows were removed during data cleaning, and all records were merged to form a single tidy dataset. Professor Trash Wheel collected a total of 282.26 tons of trash across the dataset. For June 2022, Gwynnda recorded a total collection of 18,120 cigarette butts.
+
+The combined Trash Wheel dataset contains 1269 observations. Key variables include dumpster number, month, year, weight of trash collected in tons, volume, plastic bottles, cigarette butts, and the Trash Wheel identifier. The data were imported from the three relevant Excel sheets, cleaned by removing non-data rows, and combined into one dataset. The total weight of trash collected by Professor Trash Wheel was 294.96 tons. In June 2022, Gwynnda collected a total of 18,120 cigarette butts.
 
 # Problem 3
 ```{r}
